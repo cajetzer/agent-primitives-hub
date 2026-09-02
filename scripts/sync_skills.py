@@ -70,9 +70,21 @@ def synchronize(args: argparse.Namespace) -> None:
     lock = load_lock(target)
     verify_existing_install(target, lock, args.repair_drift)
 
-    commit_sha = args.commit_sha or git_value(source, "rev-parse", "HEAD")
+    head_sha = git_value(source, "rev-parse", "HEAD")
+    commit_sha = args.commit_sha or head_sha
     if not re.fullmatch(r"[0-9a-f]{40}", commit_sha):
         raise ValueError("commit SHA must be 40 lowercase hexadecimal characters")
+    if commit_sha != head_sha:
+        raise ValueError("commit SHA does not match the checked-out source")
+
+    locked_skills = lock.get("skills", {})
+    if isinstance(locked_skills, dict):
+        for old_name, old_value in locked_skills.items():
+            if old_name in args.skills or not isinstance(old_value, dict):
+                continue
+            old_destination = target / str(old_value.get("path", ""))
+            if old_destination.is_dir():
+                shutil.rmtree(old_destination)
 
     lock_skills: dict[str, dict[str, str]] = {}
     for name in args.skills:
