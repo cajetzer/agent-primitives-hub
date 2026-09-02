@@ -1,0 +1,97 @@
+name: Propose skill synchronization
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repository:
+        description: Owner and repository to update
+        required: true
+        type: string
+      source_ref:
+        description: Immutable release tag or full commit SHA
+        required: true
+        type: string
+      skills:
+        description: Space-separated skill names
+        required: true
+        default: generate-design implement-feature review-code
+        type: string
+      repair_drift:
+        description: Replace locally modified installed skills
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out automation
+        uses: actions/checkout@v4
+        with:
+          path: automation
+      - name: Check out pinned skill source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          path: source
+      - name: Check out consumer
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repository }}
+          token: ${{ secrets.CONSUMER_SYNC_TOKEN }}
+          path: target
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Resolve source and synchronize
+        shell: bash
+        env:
+          REPAIR_DRIFT: ${{ inputs.repair_drift }}
+        run: |
+          commit_sha="$(git -C source rev-parse HEAD)"
+          repair=()
+          if [[ "$REPAIR_DRIFT" == "true" ]]; then
+            repair+=(--repair-drift)
+          fi
+          read -r -a selected_skills <<< "${{ inputs.skills }}"
+          python automation/scripts/sync_skills.py \
+            --source source \
+            --target target \
+            --source-repository "$GITHUB_REPOSITORY" \
+            --source-ref "${{ inputs.source_ref }}" \
+            --commit-sha "$commit_sha" \
+            --skills "${selected_skills[@]}" \
+            "${repair[@]}"
+      - name: Validate consumer neutrality
+        run: python automation/scripts/check_neutrality.py --root target
+      - name: Create or update synchronization pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.CONSUMER_SYNC_TOKEN }}
+          TARGET_REPOSITORY: ${{ inputs.target_repository }}
+        run: |
+          if git -C target diff --quiet && [[ -z "$(git -C target status --short)" ]]; then
+            echo "Consumer already matches the requested release."
+            exit 0
+          fi
+          branch="automation/sync-agent-skills"
+          git -C target config user.name "agent-primitives-sync"
+          git -C target config user.email "agent-primitives-sync@users.noreply.github.com"
+          git -C target checkout -B "$branch"
+          git -C target add .github/skills .agent-skills-lock.json
+          git -C target commit -m "Sync pinned agent skills"
+          git -C target push --force-with-lease origin "$branch"
+          existing="$(gh pr list --repo "$TARGET_REPOSITORY" --head "$branch" --state open --json url --jq '.[0].url')"
+          if [[ -n "$existing" ]]; then
+            echo "Updated $existing"
+          else
+            gh pr create \
+              --repo "$TARGET_REPOSITORY" \
+              --head "$branch" \
+              --title "Sync pinned agent skills" \
+              --body "Proposes the selected skills from a pinned, validated hub release. Human review remains required."
+          fi
