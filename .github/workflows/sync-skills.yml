@@ -79,19 +79,18 @@ jobs:
             exit 0
           fi
           branch="automation/sync-agent-skills"
+          if git -C target ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "::error::A synchronization branch already exists. Review or close its pull request before retrying."
+            exit 1
+          fi
           git -C target config user.name "agent-primitives-sync"
           git -C target config user.email "agent-primitives-sync@users.noreply.github.com"
-          git -C target checkout -B "$branch"
+          git -C target checkout -b "$branch"
           git -C target add .github/skills .agent-skills-lock.json
           git -C target commit -m "Sync pinned agent skills"
-          git -C target push --force-with-lease origin "$branch"
-          existing="$(gh pr list --repo "$TARGET_REPOSITORY" --head "$branch" --state open --json url --jq '.[0].url')"
-          if [[ -n "$existing" ]]; then
-            echo "Updated $existing"
-          else
-            gh pr create \
-              --repo "$TARGET_REPOSITORY" \
-              --head "$branch" \
-              --title "Sync pinned agent skills" \
-              --body "Proposes the selected skills from a pinned, validated hub release. Human review remains required."
-          fi
+          git -C target push --set-upstream origin "$branch"
+          gh pr create \
+            --repo "$TARGET_REPOSITORY" \
+            --head "$branch" \
+            --title "Sync pinned agent skills" \
+            --body "Proposes the selected skills from a pinned, validated hub release. Human review remains required."
