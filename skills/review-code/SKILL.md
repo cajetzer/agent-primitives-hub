@@ -14,7 +14,9 @@ Remain read-only.
 4. Give the exact file and changed line, failure scenario, and smallest safe
    correction.
 5. Prioritize security, data loss, correctness, and broken compatibility.
-6. If no finding meets the threshold, say that no high-confidence findings were
+6. For a release change, explicitly note rollback behavior and how to confirm the
+   prior safe state.
+7. If no finding meets the threshold, say that no high-confidence findings were
    identified.
 
 Do not report formatting preferences, speculative risks, or pre-existing issues

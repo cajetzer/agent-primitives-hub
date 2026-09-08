@@ -38,6 +38,23 @@ jobs:
         with:
           ref: ${{ inputs.source_ref }}
           path: source
+      - name: Validate target repository
+        shell: bash
+        env:
+          TARGET_REPOSITORY: ${{ inputs.target_repository }}
+        run: |
+          case "$TARGET_REPOSITORY" in
+            ai-sdlc-cajet/agent-primitives-consumer-a|agent-primitives-consumer-a)
+              ;;
+            ai-sdlc-cajet/agent-primitives-consumer-b|agent-primitives-consumer-b)
+              echo "::error::Consumer B is not a supported sync target. Use native gh skill lifecycle commands instead."
+              exit 1
+              ;;
+            *)
+              echo "::error::Unsupported target repository: $TARGET_REPOSITORY"
+              exit 1
+              ;;
+esac
       - name: Generate synchronization token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
@@ -45,7 +62,7 @@ jobs:
           client-id: ${{ vars.SKILLS_SYNC_APP_CLIENT_ID }}
           private-key: ${{ secrets.SKILLS_SYNC_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: agent-primitives-consumer-a,agent-primitives-consumer-b
+          repositories: agent-primitives-consumer-a
       - name: Check out consumer
         uses: actions/checkout@v4
         with:
