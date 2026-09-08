@@ -17,6 +17,7 @@ class SyncWorkflowGuardTests(unittest.TestCase):
             "repositories: agent-primitives-consumer-a,agent-primitives-consumer-b",
             content,
         )
+        self.assertIn("\n          esac\n", content)
         self.assertNotIn("gh pr merge", content)
 
 
