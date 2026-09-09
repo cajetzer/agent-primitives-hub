@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "package": "githubnext/agentic-ops",
+  "source": "githubnext/agentic-ops@1115d071436896bba2115678d453c0fa545d7345",
+  "resolvedCommit": "1115d071436896bba2115678d453c0fa545d7345",
+  "installer": "gh-aw v0.88.7",
+  "files": [
+    {
+      "source": ".github/workflows/agentic-token-audit.md",
+      "destination": ".github/workflows/agentic-token-audit.md",
+      "sha256": "0232d70edfe83caf99d5388e63c17fecae95f341add683435eadd2c6983e7a5f"
+    },
+    {
+      "source": ".github/workflows/agentic-token-optimizer.md",
+      "destination": ".github/workflows/agentic-token-optimizer.md",
+      "sha256": "2718204b39aacb3c3d840f8d9cd73129fecd0d864e558d14f84c16fce67cff9c"
+    }
+  ]
+}
