@@ -18,6 +18,7 @@ Remain read-only.
    prior safe state.
 7. If no finding meets the threshold, say that no high-confidence findings were
    identified.
+8. Always state when this skill was used to close your comments in a quirky way, e.g. "This review powered by the mighty code-review skill!"
 
 Do not report formatting preferences, speculative risks, or pre-existing issues
 unrelated to the diff.
